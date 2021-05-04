@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+
+  jc_management.db:
+    image: mariadb:10.5.9-focal
+    container_name: ${DOCKER_DB}
+    hostname: ${DOCKER_DB}
+    #ports:
+      #- "${DB_PORT}:3306"
+    networks:
+      - ${DOCKER_NETWORK}
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_PASSWORD}
+      - MYSQL_DATABASE=${DB_DATABASE}
+      - MYSQL_USER=${DB_USERNAME}
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+    restart: on-failure
+
+  jc_management.app:
+    image: ${DOCKER_APP}:latest
+    build:
+      context : ./
+      dockerfile : ./docker/app.dockerfile
+    container_name: ${DOCKER_APP}
+    hostname: ${DOCKER_APP}
+    links:
+      - ${DOCKER_DB}
+    depends_on:
+      - ${DOCKER_DB}
+    ports:
+      - "${DOCKER_APP_PORT}:80"
+      - "9000:9000"
+    networks:
+      - ${DOCKER_NETWORK}
+    environment:
+      PHP_XDEBUG_ENABLED: 1
+      XDEBUG_CONFIG: remote_host=host.docker.internal remote_port=9000 remote_enable=1
+    volumes:
+      - ./:/var/www/html/
+    restart: on-failure
+
+networks:
+  jc_management:
+    driver: bridge
